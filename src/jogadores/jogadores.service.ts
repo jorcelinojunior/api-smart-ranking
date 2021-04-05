@@ -1,6 +1,6 @@
-import { Jogador } from './interfaces/jogador.interface';
-import { CriarJogadorDto } from './dtos/criar-jogador.dto';
-import { Injectable, Logger } from '@nestjs/common';
+import { IJogador } from './interfaces/IJogador.interface';
+import { CriarJogadorDto } from './dtos/criarJogador.dto';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface IResponse {
@@ -9,7 +9,7 @@ export interface IResponse {
 
 @Injectable()
 export class JogadoresService {
-  private jogadores: Jogador[] = [];
+  private jogadores: IJogador[] = [];
 
   private readonly logger = new Logger(JogadoresService.name);
 
@@ -31,14 +31,14 @@ export class JogadoresService {
     }
   }
 
-  public async consultarTodosJogadores(): Promise<Jogador[]> {
+  public async consultarTodosJogadores(): Promise<IJogador[]> {
     return await this.jogadores;
   }
 
   private async criar(criarJogadorDto: CriarJogadorDto): Promise<IResponse> {
     const { nome, telefoneCelular, email } = criarJogadorDto;
 
-    const jogador: Jogador = {
+    const jogador: IJogador = {
       _id: uuidv4(),
       nome,
       telefoneCelular,
@@ -55,11 +55,39 @@ export class JogadoresService {
   }
 
   private async atualizar(
-    jogadorEncontrado: Jogador,
+    jogadorEncontrado: IJogador,
     criarJogadorDto: CriarJogadorDto,
   ): Promise<IResponse> {
     const { nome } = criarJogadorDto;
     jogadorEncontrado.nome = nome;
+
+    return { ok: true };
+  }
+
+  public async consultarJogadorPeloEmail(email: string): Promise<IJogador> {
+    const jogadorEncontrado = this.jogadores.find(
+      (jogador) => jogador.email === email,
+    );
+    if (!jogadorEncontrado) {
+      throw new NotFoundException(`Jogador com email ${email} não encontrado.`);
+    }
+    return jogadorEncontrado;
+  }
+
+  public async deletarJogador(email: string): Promise<IResponse> {
+    const jogadorEncontrado = this.jogadores.find(
+      (jogador) => jogador.email === email,
+    );
+
+    if (!jogadorEncontrado) {
+      throw new NotFoundException(
+        `Jogador com email ${email} não encontrado para ser deletado.`,
+      );
+    }
+
+    this.jogadores = this.jogadores.filter(
+      (jogador) => jogador.email !== email,
+    );
 
     return { ok: true };
   }
